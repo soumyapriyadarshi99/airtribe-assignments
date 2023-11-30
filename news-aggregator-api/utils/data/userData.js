@@ -1,3 +1,3 @@
-let userData = [{ id: 10001, email: "das@gmail.com" }];
+let userData = [];
 
 module.exports = userData;
