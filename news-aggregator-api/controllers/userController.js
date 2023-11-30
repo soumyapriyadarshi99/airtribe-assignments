@@ -3,9 +3,10 @@ const userController = express.Router();
 const uuid = require("uuid"); //using this package to generate unique id for each user
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const userData = require("../utils/data/userData");
+let userData = require("../utils/data/userData");
 const emailValidation = require("../utils/helper/emailValidation");
 const userValidation = require("../utils/helper/userValidation");
+const jwtAuth = require("../middlewares/jwtAuth");
 
 const secretKey = "API_NEWS_AGGREGATOR";
 
@@ -63,6 +64,52 @@ userController.post("/login", (req, res) => {
     });
   } catch (error) {
     res.status(401).send(error?.message);
+  }
+});
+
+userController.get("/preferences", jwtAuth, (req, res) => {
+  try {
+    if (req?.user) {
+      const userId = req?.user;
+      const user = userData?.find((user) => user?.id === userId);
+      if (!user) {
+        res.status(404).send("No User found");
+      }
+      const newsPrefered = user?.preferences;
+      res.status(200).json(newsPrefered);
+    } else {
+      throw new Error(req?.message);
+    }
+  } catch (error) {
+    res.status(403).send(error?.message);
+  }
+});
+
+userController.put("/preferences", jwtAuth, (req, res) => {
+  try {
+    if (req?.user) {
+      const userId = req?.user;
+      const newPreference = req?.body?.preference;
+      const userIndex = userData.findIndex((user) => user?.id === userId);
+      if (!newPreference) {
+        return res
+          .status(400)
+          .json({ status: "error", message: "Preference expected" });
+      }
+      if (userIndex === -1) {
+        return res
+          .status(404)
+          .json({ status: "error", message: "No user found" });
+      }
+      userData[userIndex].preferences = newPreference;
+      res
+        .status(200)
+        .json({ status: "success", message: "User preference updated" });
+    } else {
+      throw new Error(req?.message);
+    }
+  } catch (error) {
+    res.status(403).send(error?.message);
   }
 });
 
