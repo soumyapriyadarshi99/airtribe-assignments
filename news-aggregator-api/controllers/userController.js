@@ -30,7 +30,7 @@ userController.post("/register", (req, res) => {
       password: hashedPassword,
       id: userId,
       createdDate: new Date(),
-      preferences: "default",
+      preferences: "tech",
     });
     res.status(200).json({
       status: "success",
