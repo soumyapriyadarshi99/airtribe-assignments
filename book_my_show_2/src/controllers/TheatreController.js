@@ -16,7 +16,14 @@ const createTheatre = async (req, res) => {
 
 const getTheatres = async (req, res) => {
   try {
-    const theatres = await Theatre.findAll();
+    let filter = {};
+    const location = req?.query?.location;
+
+    if (location) {
+      filter = { ...filter, location: location };
+    }
+
+    const theatres = await Theatre.findAll({ where: filter });
     res.status(200).json(theatres);
   } catch (error) {
     res.status(404).json({ error: error });
