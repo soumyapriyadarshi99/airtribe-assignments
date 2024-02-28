@@ -1,7 +1,7 @@
 import { VehicleType } from "../vehicles/Vehicle.type";
 import mongoose, { Schema, Document } from "mongoose";
 
-interface TicketDocument extends Document {
+export interface TicketDocument extends Document {
   vehicleType: VehicleType;
   entryTime: Date;
   exitTime: Date;

@@ -4,8 +4,9 @@ import bodyParser, { json } from "body-parser";
 import cors from "cors";
 import Database from "./config/Db.config";
 import { ParkingSpot } from "./parking-spot/ParkingSpot";
-import ParkingModel from "./models/Parking.model";
-import TicketModel from "./models/Ticket.model";
+import ParkingModel, { ParkingDocument } from "./models/Parking.model";
+import TicketModel, { TicketDocument } from "./models/Ticket.model";
+import Utility from "./utility/Utility";
 
 const PORT = 8000;
 
@@ -78,12 +79,70 @@ app.post("/create-ticket", async (req: Request, res: Response) => {
   }
 });
 
+app.put("/create-ticket", async (req: Request, res: Response) => {
+  try {
+    const { vehicleRegisterNumber } = req?.body;
+    if (vehicleRegisterNumber) {
+      let totalParkingCharge: number | undefined = 0;
+      let ticketToUpdate: TicketDocument | null = await TicketModel.findOne({
+        vehicleRegisterNumber: vehicleRegisterNumber,
+      });
+      let parkingSpotToUpdate: ParkingDocument | null =
+        await ParkingModel.findOne({
+          vehicleRegisterNumber: vehicleRegisterNumber,
+        });
+
+      if (ticketToUpdate && !ticketToUpdate.exitTime) {
+        ticketToUpdate.exitTime = new Date();
+        const entryTimeMs = ticketToUpdate.entryTime.getTime(); // Convert to milliseconds
+        const exitTimeMs = ticketToUpdate.exitTime.getTime(); // Convert to milliseconds
+        const hourDifference =
+          Math.abs(exitTimeMs - entryTimeMs) / (1000 * 60 * 60); // Convert milliseconds to hours
+        const hours: number = Math.round(hourDifference); //
+        totalParkingCharge = Utility.calculatePrice(
+          ticketToUpdate?.vehicleType,
+          hours
+        );
+      } else {
+        throw new Error("Ticket not found");
+      }
+
+      if (parkingSpotToUpdate) {
+        parkingSpotToUpdate.isAvailable = true;
+        parkingSpotToUpdate.ticketNo = null;
+        parkingSpotToUpdate.vehicleRegisterNumber = null;
+      } else {
+        throw new Error("Parking spot not found");
+      }
+      let savedTicket = await TicketModel.findOneAndUpdate(
+        {
+          vehicleRegisterNumber: vehicleRegisterNumber,
+        },
+        ticketToUpdate
+      );
+      let savedParkingSpot = await ParkingModel.findOneAndUpdate(
+        { vehicleRegisterNumber: vehicleRegisterNumber },
+        parkingSpotToUpdate
+      );
+      console.log(savedParkingSpot);
+      res.status(200).send({ ...savedTicket, price: totalParkingCharge });
+    } else {
+      throw new Error("Vehicle not found");
+    }
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
+});
+
 app.get("/get-parking-spots", async (req: Request, res: Response) => {
   try {
-    const { floor } = req?.body;
+    const { floor, ticketNo } = req?.body;
     let filter = {};
     if (floor) {
       filter = { ...filter, floor: floor };
+    }
+    if (ticketNo) {
+      filter = { ...filter, ticketNo: ticketNo };
     }
     const parkingSpots = await ParkingModel.find({ ...filter });
     res.status(200).json(parkingSpots);

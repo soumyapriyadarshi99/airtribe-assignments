@@ -1,12 +1,12 @@
 import { VehicleType } from "../vehicles/Vehicle.type";
 import mongoose, { Schema, Document } from "mongoose";
 
-interface ParkingDocument extends Document {
+export interface ParkingDocument extends Document {
   vehicleType: VehicleType;
   isAvailable: boolean;
   floor: number;
-  ticketNo: string;
-  vehicleRegisterNumber: string;
+  ticketNo: string | null;
+  vehicleRegisterNumber: string | null;
 }
 
 const ParkingSchema: Schema<ParkingDocument> = new Schema({
